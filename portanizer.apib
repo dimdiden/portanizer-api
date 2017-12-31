@@ -1,0 +1,224 @@
+
+FORMAT: 1A
+
+# Portanizer
+
+Portanizer is a simple app for saving and retrieving different snippets
+
+# Group Posts
+
+Resources related to posts in API
+
+## Posts Collection [/posts]
+
+### List All Posts [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+                "post": "Update",
+                "body": "sudo ionice -c3 sudo swapoff -a&& sudo swapon -a",
+                "published_at": "2014-11-11T08:40:51.620Z",
+                "url": "/posts/1",
+                "tags": [
+                    {
+                        "tag": "Ntp",
+                    }, {
+                        "tag": "Chronyd",
+                    },
+                ]
+            }
+        ]
+
+### Create a New Post [POST]
+
+You may create your own post using this action. It takes a JSON object
+containing the required fields.
+
++ post (string) - The name of the post
++ body (string) - The main body of the post
++ tags (array[object]) - The tags which are assigned to the post.
+
++ Request (application/json)
+
+        {
+            "post": "Update",
+            "body": "sudo ionice -c3 sudo swapoff -a&& sudo swapon -a",
+            "tags": [
+                {
+                    "tag": "Ntp",
+                }, {
+                    "tag": "Chronyd",
+                },
+            ]
+        }
+
++ Response 201 (application/json)
+
+    + Headers
+
+                Location: /posts/1
+
+    + Body
+
+               {
+                  "post": "Update",
+                  "body": "sudo ionice -c3 sudo swapoff -a&& sudo swapon -a",
+                  "published_at": "2014-11-11T08:40:51.620Z",
+                  "url": "/posts/1",
+                  "tags": [
+                      {
+                          "tag": "Ntp",
+                      }, {
+                          "tag": "Chronyd",
+                      },
+                  ]
+               }
+
+## Post [/posts/{post_id}]
+
++ Parameters
+    + post_id (number) - ID of the Post in the form of an integer
+
+### View a Post Detail [GET]
+
++ Response 200 (application/json)
+
+              {
+                 "post": "Update",
+                 "body": "sudo ionice -c3 sudo swapoff -a&& sudo swapon -a",
+                 "published_at": "2014-11-11T08:40:51.620Z",
+                 "url": "/posts/1",
+                 "tags": [
+                     {
+                         "tag": "Ntp",
+                     }, {
+                         "tag": "Chronyd",
+                     },
+                 ]
+              }
+
+### Update a Post [PATCH]
+
+You may update your own post using this action. It takes a JSON object
+containing the required fields.
+
++ post (string) - The name of the post
++ body (string) - The main body of the post
++ tags (array[object]) - The tags which are assigned to the post.
+
++ Request (application/json)
+
+        {
+            "post": "Update",
+            "body": "sudo ionice -c3 sudo swapoff -a&& sudo swapon -a",
+            "tags": [
+                {
+                    "tag": "Ntp",
+                }, {
+                    "tag": "Chronyd",
+                },
+            ]
+        }
+
++ Response 200 (application/json)
+
+              {
+                 "post": "Update",
+                 "body": "sudo ionice -c3 sudo swapoff -a&& sudo swapon -a",
+                 "published_at": "2014-11-11T08:40:51.620Z",
+                 "url": "/posts/1",
+                 "tags": [
+                     {
+                         "tag": "Ntp",
+                     }, {
+                         "tag": "Chronyd",
+                     },
+                 ]
+              }
+
+### Delete a Post[DELETE]
+
++ Response 204
+
+# Group Tags
+
+Resources related to tags in API
+
+## Tags Collection [/tags]
+
+### List All Tags [GET]
+
++ Response 200 (application/json)
+
+        [
+            {
+                "tag": "Mysql"
+            },
+            {
+                "tag": "Ntp"
+            },
+        ]
+
+### Create a Tag [POST]
+
+You may create your own post using this action. It takes a JSON object
+containing the required fields.
+
++ tag (string) - The name of the tag
+
++ Request (application/json)
+
+        {
+            "tag": "Mysql"
+        }
+
++ Response 201 (application/json)
+
+    + Headers
+
+                Location: /tags/1
+
+    + Body
+
+            {
+                "tag": "Mysql"
+            }
+
+
+## Tag [/tags/{tag_id}]
+
++ Parameters
+    + tag_id (number) - ID of the Tag in the form of an integer
+
+### View a Tag Detail [GET]
+
++ Response 200 (application/json)
+
+        {
+            "tag": "Mysql"
+        }
+
+### Update a Tag [PATCH]
+
+You may update your tag using this action. It takes a JSON object
+containing the required fields.
+
++ tag (string) - The name of the post
+
++ Request (application/json)
+
+        {
+            "tag": "Mysql"
+        }
+
++ Response 200 (application/json)
+
+          {
+              "tag": "Mysql"
+          }
+
+### Delete a Tag[DELETE]
+
++ Response 204
