@@ -5,16 +5,21 @@ import (
 	"net/http"
 )
 
-func ResponseWithJSON(w http.ResponseWriter, json []byte, code int) {
+func ResponseWithJSON(w http.ResponseWriter, data interface{}, code int) {
+	out, err := json.Marshal(data)
+	if err != nil {
+		ErrorWithJSON(w, "Can not marshal output", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
-	w.Write(json)
+	w.Write(out)
 }
 
 func ErrorWithJSON(w http.ResponseWriter, message string, code int) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(code)
 	m := map[string]string{"Message": message}
 	out, _ := json.Marshal(&m)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(code)
 	w.Write(out)
 }
