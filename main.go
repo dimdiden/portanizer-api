@@ -8,13 +8,15 @@ const CONFFILE = "./conf.json"
 
 func main() {
 
-	app := App{}
+	// app := App{}
 
 	cfile := flag.String("cfile", CONFFILE, "path to the configuration file")
 	lenabled := flag.Bool("l", false, "enabling app logging")
 	flag.Parse()
 
-	app.Initiate(*cfile)
+	app := Initiate(*cfile, *lenabled)
+
+	// app.Initiate(*cfile, *lenabled)
 
 	app.CleanDB()
 
@@ -39,5 +41,5 @@ func main() {
 	// app.DB.Save(&post1)
 	// app.DB.Save(&post2)
 
-	app.Run(*lenabled)
+	app.Run()
 }

@@ -13,7 +13,7 @@ import (
 )
 
 type App struct {
-	Lfile io.WriteCloser
+	Lout io.WriteCloser
 	Conf *Conf
 	R    *mux.Router
 	DB   *gorm.DB
@@ -27,17 +27,25 @@ type Conf struct {
 	Ptolog string `json:"logfile"`
 }
 
-func (app *App) Initiate(cfile string) {
+func Initiate(cfile string, lenabled bool) *App {
+	app := App{}
+
 	app.SetConf(cfile)
 	app.SetDB()
 	app.SetRouter()
 
-	lfile, err := os.Create(app.Conf.Ptolog)
-	if err != nil {
-		log.Fatal("Cannot create the logfile:", err)
+	app.Lout = os.Stdout
+
+	if lenabled {
+		lfile, err := os.Create(app.Conf.Ptolog)
+		if err != nil {
+			log.Fatal("Cannot create the logfile:", err)
+		}
+		app.Lout = lfile
 	}
-	app.Lfile = lfile
+	return &app
 }
+
 
 func (app *App) SetConf(cfile string) {
 	file, err := os.Open(cfile)
@@ -78,17 +86,15 @@ func (app *App) CleanDB() {
 	app.DB.AutoMigrate(&Post{}, &Tag{}, &PostTag{})
 }
 
-func (app *App) Run(lenabled bool) {
+func (app *App) Run() {
 	var h http.Handler = app.R
 
-	if lenabled {
-		h = handlers.LoggingHandler(app.Lfile, h)
-	}
+	h = handlers.LoggingHandler(app.Lout, h)
 
 	http.ListenAndServe(app.Conf.Addr, h)
 }
 
 func (app *App) Exit() {
 	app.DB.Close()
-	app.Lfile.Close()
+	app.Lout.Close()
 }
