@@ -6,10 +6,10 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	"io"
 	"log"
 	"net/http"
 	"os"
-	"io"
 )
 
 type App struct {
@@ -45,7 +45,6 @@ func Initiate(cfile string, lenabled bool) *App {
 	}
 	return &app
 }
-
 
 func (app *App) SetConf(cfile string) {
 	file, err := os.Open(cfile)
