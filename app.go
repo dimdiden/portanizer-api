@@ -27,11 +27,11 @@ type Conf struct {
 	Ptolog string `json:"logfile"`
 }
 
-func Initiate(cfile string, lenabled bool) *App {
+func Initiate(cfile string, lenabled, clear bool) *App {
 	app := App{}
 
 	app.SetConf(cfile)
-	app.SetDB()
+	app.SetDB(clear)
 	app.SetRouter()
 
 	app.Lout = os.Stdout
@@ -59,35 +59,44 @@ func (app *App) SetConf(cfile string) {
 	return
 }
 
-func (app *App) SetDB() {
+func (app *App) SetDB(clear bool) {
 	cs := fmt.Sprintf("%s:@/%s?charset=utf8&parseTime=True&loc=Local", app.Conf.DBuser, app.Conf.DBname)
 	db, err := gorm.Open(app.Conf.Driver, cs)
 	if err != nil {
 		log.Fatal("Error opening database:", err)
 	}
 	app.DB = db.Debug()
+
+	if clear {
+		app.DB.DropTableIfExists(&Post{}, &Tag{}, &PostTag{})
+	}
+
+	app.DB.AutoMigrate(&Post{}, &Tag{}, &PostTag{})
 }
 
 func (app *App) SetRouter() {
 	app.R = mux.NewRouter()
+	// app.R.StrictSlash(true)
 
-	app.R.HandleFunc("/health", Health).Methods("GET")
+	app.R.HandleFunc("/health", app.CheckHealth).Methods("GET")
+
 	app.R.HandleFunc("/posts", app.GetPostList).Methods("GET")
 	app.R.HandleFunc("/posts", app.CreatePost).Methods("POST")
+	app.R.HandleFunc("/posts/{id}", app.DeletePost).Methods("DELETE")
 
 	app.R.HandleFunc("/tags", app.GetTagList).Methods("GET")
 	app.R.HandleFunc("/tags", app.CreateTag).Methods("POST")
+	app.R.HandleFunc("/tags/{id}", app.UpdateTag).Methods("PATCH")
+	app.R.HandleFunc("/tags/{id}", app.DeleteTag).Methods("DELETE")
 
 }
 
-func (app *App) CleanDB() {
+func (app *App) clearDB() {
 	app.DB.DropTableIfExists(&Post{}, &Tag{}, &PostTag{})
-	app.DB.AutoMigrate(&Post{}, &Tag{}, &PostTag{})
 }
 
 func (app *App) Run() {
 	var h http.Handler = app.R
-
 	h = handlers.LoggingHandler(app.Lout, h)
 
 	http.ListenAndServe(app.Conf.Addr, h)

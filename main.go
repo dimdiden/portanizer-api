@@ -8,13 +8,12 @@ const CONFFILE = "./conf.json"
 
 func main() {
 
-	cfile := flag.String("cfile", CONFFILE, "path to the configuration file")
-	lenabled := flag.Bool("l", false, "enabling app logging")
+	cfile := flag.String("cfile", CONFFILE, "specify path to the configuration file")
+	lenabled := flag.Bool("l", false, "enable app logging")
+	clear := flag.Bool("c", false, "clear the database beforehand")
 	flag.Parse()
 
-	app := Initiate(*cfile, *lenabled)
-
-	app.CleanDB()
+	app := Initiate(*cfile, *lenabled, *clear)
 
 	defer app.Exit()
 

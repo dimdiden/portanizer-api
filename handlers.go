@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json"
 	// "fmt"
+	"github.com/gorilla/mux"
 	"net/http"
 )
 
-func Health(w http.ResponseWriter, r *http.Request) {
+func (app *App) CheckHealth(w http.ResponseWriter, r *http.Request) {
 	body := map[string]string{"Status": "OK"}
 	ResponseWithJSON(w, &body, http.StatusOK)
 }
@@ -31,6 +32,18 @@ func (app *App) CreatePost(w http.ResponseWriter, r *http.Request) {
 	ResponseWithJSON(w, &post, http.StatusOK)
 }
 
+func (app *App) DeletePost(w http.ResponseWriter, r *http.Request) {
+	var post Post
+
+	vars := mux.Vars(r)
+	post_id := vars["id"]
+
+	app.DB.Where("id = ?", post_id).Delete(&Post{})
+	app.DB.Unscoped().Where("id = ?", post_id).First(&post)
+
+	ResponseWithJSON(w, &post, http.StatusOK)
+}
+
 func (app *App) GetTagList(w http.ResponseWriter, r *http.Request) {
 	var tags []Tag
 	app.DB.Find(&tags)
@@ -45,6 +58,36 @@ func (app *App) CreateTag(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	app.DB.Save(&tag)
+	ResponseWithJSON(w, &tag, http.StatusOK)
+}
+
+func (app *App) UpdateTag(w http.ResponseWriter, r *http.Request) {
+	var tag Tag
+	if err := json.NewDecoder(r.Body).Decode(&tag); err != nil {
+		ErrorWithJSON(w, "Can not decode json", http.StatusBadRequest)
+		return
+	}
+
+	vars := mux.Vars(r)
+	tag_id := vars["id"]
+
+	app.DB.Table("tags").Where("id = ?", tag_id).Update(&tag)
+
+	// db.Model(&user).Updates(map[string]interface{}{"name": "hello", "age": 18, "actived": false})
+
+	// app.DB.Save(&tag)
+	ResponseWithJSON(w, &tag, http.StatusOK)
+}
+
+func (app *App) DeleteTag(w http.ResponseWriter, r *http.Request) {
+	var tag Tag
+
+	vars := mux.Vars(r)
+	tag_id := vars["id"]
+
+	app.DB.Where("id = ?", tag_id).Delete(&Tag{})
+	app.DB.Unscoped().Where("id = ?", tag_id).First(&tag)
+
 	ResponseWithJSON(w, &tag, http.StatusOK)
 }
 
