@@ -6,14 +6,12 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
-	"io"
 	"log"
 	"net/http"
 	"os"
 )
 
 type App struct {
-	Lout io.WriteCloser
 	Conf *Conf
 	R    *mux.Router
 	DB   *gorm.DB
@@ -27,22 +25,13 @@ type Conf struct {
 	Ptolog string `json:"logfile"`
 }
 
-func Initiate(cfile string, lenabled, clear bool) *App {
+func Initiate(cfile string, clear bool) *App {
 	app := App{}
 
 	app.SetConf(cfile)
 	app.SetDB(clear)
 	app.SetRouter()
 
-	app.Lout = os.Stdout
-
-	if lenabled {
-		lfile, err := os.Create(app.Conf.Ptolog)
-		if err != nil {
-			log.Fatal("Cannot create the logfile:", err)
-		}
-		app.Lout = lfile
-	}
 	return &app
 }
 
@@ -65,7 +54,7 @@ func (app *App) SetDB(clear bool) {
 	if err != nil {
 		log.Fatal("Error opening database:", err)
 	}
-	app.DB = db.Debug()
+	app.DB = db
 
 	if clear {
 		app.DB.DropTableIfExists(&Post{}, &Tag{}, &PostTag{})
@@ -95,14 +84,25 @@ func (app *App) clearDB() {
 	app.DB.DropTableIfExists(&Post{}, &Tag{}, &PostTag{})
 }
 
-func (app *App) Run() {
+func (app *App) Run(lfok, ltok, dbok bool) {
 	var h http.Handler = app.R
-	h = handlers.LoggingHandler(app.Lout, h)
+
+	if lfok {
+		lfile, err := os.Create(app.Conf.Ptolog)
+		if err != nil {
+			log.Fatal("Cannot create the logfile:", err)
+		}
+		h = handlers.LoggingHandler(lfile, h)
+		defer lfile.Close()
+	}
+	if ltok {
+		h = handlers.LoggingHandler(os.Stdout, h)
+	}
+	if dbok {
+		app.DB = app.DB.Debug()
+	}
+
+	defer app.DB.Close()
 
 	http.ListenAndServe(app.Conf.Addr, h)
-}
-
-func (app *App) Exit() {
-	app.DB.Close()
-	app.Lout.Close()
 }

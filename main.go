@@ -9,15 +9,15 @@ const CONFFILE = "./conf.json"
 func main() {
 
 	cfile := flag.String("cfile", CONFFILE, "specify path to the configuration file")
-	lenabled := flag.Bool("l", false, "enable app logging")
+	lfok := flag.Bool("f", false, "enable http logging into file")
+	ltok := flag.Bool("t", false, "enable http logging into terminal")
+	dbok := flag.Bool("d", false, "enable db queries logging")
 	clear := flag.Bool("c", false, "clear the database beforehand")
 	flag.Parse()
 
-	app := Initiate(*cfile, *lenabled, *clear)
+	app := Initiate(*cfile, *clear)
 
-	defer app.Exit()
-
-	app.Run()
+	app.Run(*lfok, *ltok, *dbok)
 }
 
 // post1 := Post{
