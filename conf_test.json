@@ -1,0 +1,7 @@
+{
+   "addr": ":8080",
+   "driver": "mysql",
+   "dbuser": "root",
+   "dbname": "portanizer_test",
+   "logfile": "./app_access_test.log"
+}
