@@ -21,3 +21,11 @@ type PostTag struct {
 	PostId int
 	TagId  int
 }
+
+func (p Post) String() string {
+	return "posts"
+}
+
+func (p Tag) String() string {
+	return "tags"
+}
