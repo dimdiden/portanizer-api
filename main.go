@@ -11,7 +11,7 @@ func main() {
 	cfile := flag.String("cfile", CONFFILE, "specify path to the configuration file")
 	lfok := flag.Bool("f", false, "enable http logging into file")
 	ltok := flag.Bool("t", false, "enable http logging into terminal")
-	dbok := flag.Bool("d", false, "enable db queries logging")
+	dbok := flag.Bool("d", false, "enable logging db queries")
 	clear := flag.Bool("c", false, "clear the database beforehand")
 	flag.Parse()
 
