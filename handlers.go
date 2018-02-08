@@ -3,12 +3,13 @@ package main
 import (
 	"encoding/json"
 	// "fmt"
-	"github.com/gorilla/mux"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 func (app *App) CheckHealth(w http.ResponseWriter, r *http.Request) {
-	body := map[string]string{"Status": "OK"}
+	body := map[string]string{"Message": "OK"}
 	ResponseWithJSON(w, &body, http.StatusOK)
 }
 
