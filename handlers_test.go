@@ -107,21 +107,30 @@ func TestCreatePost(t *testing.T) {
 		method string
 		url    string
 		body   []byte
-		exp    interface{}
+		exp    map[string]interface{}
 		status int
 	}{
 		{name: "create first post",
 			method: "POST",
 			url:    "/posts",
 			body:   []byte(`{"Name": "Post1", "Body": "Body1", "Tags": [{"Name": "tag1"},{"Name": "tag2"}]}`),
-			exp:    Post{ID: 1, Name: "Post1", Body: "Body1", Tags: []Tag{{ID: 1, Name: "tag1"}, {ID: 2, Name: "tag2"}}},
+			// exp:    Post{ID: 1, Name: "Post1", Body: "Body1", Tags: []Tag{{ID: 1, Name: "tag1"}, {ID: 2, Name: "tag2"}}},
+			exp:    map[string]interface{}{"ID": float64(1), "Name": "Post1", "Body": "Body1", "Tags": []interface{}{map[string]interface{}{"ID": float64(1), "Name": "tag1"}, map[string]interface{}{"ID": float64(2), "Name": "tag2"}}},
 			status: http.StatusOK,
 		},
-		{name: "create second post with the same tags",
+		{name: "create with the same post",
+			method: "POST",
+			url:    "/posts",
+			body:   []byte(`{"Name": "Post1", "Body": "Body1", "Tags": [{"Name": "tag3"},{"Name": "tag4"}]}`),
+			exp:    map[string]interface{}{"Message": "Failed. This post name already exists"},
+			status: http.StatusBadRequest,
+		},
+		{name: "create with the same tags",
 			method: "POST",
 			url:    "/posts",
 			body:   []byte(`{"Name": "Post2", "Body": "Body2", "Tags": [{"Name": "tag1"},{"Name": "tag2"}]}`),
-			exp:    Post{ID: 2, Name: "Post2", Body: "Body2", Tags: []Tag{{ID: 1, Name: "tag1"}, {ID: 2, Name: "tag2"}}},
+			// exp:    Post{ID: 2, Name: "Post2", Body: "Body2", Tags: []Tag{{ID: 1, Name: "tag1"}, {ID: 2, Name: "tag2"}}},
+			exp:    map[string]interface{}{"ID": float64(2), "Name": "Post2", "Body": "Body2", "Tags": []interface{}{map[string]interface{}{"ID": float64(1), "Name": "tag1"}, map[string]interface{}{"ID": float64(2), "Name": "tag2"}}},
 			status: http.StatusOK,
 		},
 	}
@@ -143,15 +152,29 @@ func TestCreatePost(t *testing.T) {
 				t.Fatalf("could not send %v request: %v", tc.method, err)
 			}
 			// Read the response Body to post value
-			var post Post
-			err = json.NewDecoder(res.Body).Decode(&post)
+			// var post Post
+			// err = json.NewDecoder(res.Body).Decode(&post)
+			// defer res.Body.Close()
+			// if err != nil {
+			// 	t.Fatalf("could not unmarshal data: ", err)
+			// }
+
+			var rcv map[string]interface{}
+			err = json.NewDecoder(res.Body).Decode(&rcv)
 			defer res.Body.Close()
 			if err != nil {
 				t.Fatalf("could not unmarshal data: ", err)
 			}
+			// for i, y := range tc.exp {
+			// 	fmt.Printf("%v -- %T: %v -- %T\n", i, i, y, y)
+			// }
+			// for i, y := range rcv {
+			// 	fmt.Printf("%v -- %T: %v -- %T\n", i, i, y, y)
+			// }
+
 			// Compare expected with received
-			if !reflect.DeepEqual(tc.exp, post) {
-				t.Errorf("expected response to be %v, got %v", tc.exp, post)
+			if !reflect.DeepEqual(tc.exp, rcv) {
+				t.Errorf("expected response to be %v, got %v", tc.exp, rcv)
 			}
 		})
 	}
