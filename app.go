@@ -3,12 +3,13 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+	"github.com/jinzhu/gorm"
 )
 
 type App struct {
@@ -56,11 +57,16 @@ func (app *App) SetDB(clear bool) {
 	}
 	app.DB = db
 
+	// app.DB.LogMode(true)
+
 	if clear {
-		app.DB.DropTableIfExists(&Post{}, &Tag{}, &PostTag{})
+		app.clearDB()
 	}
 
-	app.DB.AutoMigrate(&Post{}, &Tag{}, &PostTag{})
+	err = RunMigrations(app.DB)
+	if err != nil {
+		log.Fatal("Could not migrate: %v", err)
+	}
 }
 
 func (app *App) SetRouter() {
@@ -81,7 +87,9 @@ func (app *App) SetRouter() {
 }
 
 func (app *App) clearDB() {
-	app.DB.DropTableIfExists(&Post{}, &Tag{}, &PostTag{})
+	app.DB.Exec("DROP TABLE `migrations`")
+	app.DB.Exec("DROP TABLE `post_tags`")
+	app.DB.DropTableIfExists(&Post{}, &Tag{})
 }
 
 func (app *App) Run(lfok, ltok, dbok bool) {
@@ -100,6 +108,7 @@ func (app *App) Run(lfok, ltok, dbok bool) {
 	}
 	if dbok {
 		app.DB = app.DB.Debug()
+		// app.DB.LogMode(true)
 	}
 
 	defer app.DB.Close()
