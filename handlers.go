@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	// "fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -24,12 +23,32 @@ func (app *App) GetPostList(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) CreatePost(w http.ResponseWriter, r *http.Request) {
-	var post Post
-	if err := json.NewDecoder(r.Body).Decode(&post); err != nil {
+	var rsvpost Post
+	if err := json.NewDecoder(r.Body).Decode(&rsvpost); err != nil {
 		ErrorWithJSON(w, "Can not decode json", http.StatusBadRequest)
 		return
 	}
-	app.DB.Save(&post)
+
+	var post Post
+
+	app.DB.First(&post, "name = ?", rsvpost.Name)
+	if !app.DB.NewRecord(post) {
+		ErrorWithJSON(w, "Failed. This post name already exists", http.StatusBadRequest)
+		return
+	}
+
+	post = Post{Name: rsvpost.Name, Body: rsvpost.Body}
+	app.DB.Create(&post)
+
+	for _, t := range rsvpost.Tags {
+		app.DB.First(&t, "name = ?", t.Name)
+		if app.DB.NewRecord(t) {
+			app.DB.Create(&t)
+		}
+		app.DB.Model(&post).Association("Tags").Append(t)
+	}
+
+	// app.DB.Save(&post)
 	ResponseWithJSON(w, &post, http.StatusOK)
 }
 
