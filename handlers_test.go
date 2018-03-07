@@ -110,7 +110,7 @@ func TestCreatePost(t *testing.T) {
 		exp    map[string]interface{}
 		status int
 	}{
-		{name: "create first post",
+		{name: "first post",
 			method: "POST",
 			url:    "/posts",
 			body:   []byte(`{"Name": "Post1", "Body": "Body1", "Tags": [{"Name": "tag1"},{"Name": "tag2"}]}`),
@@ -118,14 +118,14 @@ func TestCreatePost(t *testing.T) {
 			exp:    map[string]interface{}{"ID": float64(1), "Name": "Post1", "Body": "Body1", "Tags": []interface{}{map[string]interface{}{"ID": float64(1), "Name": "tag1"}, map[string]interface{}{"ID": float64(2), "Name": "tag2"}}},
 			status: http.StatusOK,
 		},
-		{name: "create with the same post",
+		{name: "with the same post name",
 			method: "POST",
 			url:    "/posts",
 			body:   []byte(`{"Name": "Post1", "Body": "Body1", "Tags": [{"Name": "tag3"},{"Name": "tag4"}]}`),
 			exp:    map[string]interface{}{"Message": "Failed. This post name already exists"},
 			status: http.StatusBadRequest,
 		},
-		{name: "create with the same tags",
+		{name: "with the same tags",
 			method: "POST",
 			url:    "/posts",
 			body:   []byte(`{"Name": "Post2", "Body": "Body2", "Tags": [{"Name": "tag1"},{"Name": "tag2"}]}`),
@@ -159,6 +159,12 @@ func TestCreatePost(t *testing.T) {
 			// 	t.Fatalf("could not unmarshal data: ", err)
 			// }
 
+			// Check Status
+			if res.StatusCode != tc.status {
+				t.Errorf("expected status %v; got %v", tc.status, res.StatusCode)
+			}
+
+			// https://attilaolah.eu/2013/11/29/json-decoding-in-go/
 			var rcv map[string]interface{}
 			err = json.NewDecoder(res.Body).Decode(&rcv)
 			defer res.Body.Close()
