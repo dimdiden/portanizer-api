@@ -29,6 +29,11 @@ func (app *App) CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if rsvpost.Name == "" {
+		ErrorWithJSON(w, "Failed. Name field is empty", http.StatusBadRequest)
+		return
+	}
+
 	var post Post
 
 	app.DB.First(&post, "name = ?", rsvpost.Name)
@@ -37,7 +42,7 @@ func (app *App) CreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post = Post{Name: rsvpost.Name, Body: rsvpost.Body}
+	post = Post{Name: rsvpost.Name, Body: rsvpost.Body, Tags: []Tag{}}
 	app.DB.Create(&post)
 
 	for _, t := range rsvpost.Tags {
@@ -48,8 +53,50 @@ func (app *App) CreatePost(w http.ResponseWriter, r *http.Request) {
 		app.DB.Model(&post).Association("Tags").Append(t)
 	}
 
-	// app.DB.Save(&post)
 	ResponseWithJSON(w, &post, http.StatusOK)
+}
+
+func (app *App) UpdatePost(w http.ResponseWriter, r *http.Request) {
+	post_id := mux.Vars(r)["id"]
+
+	var post Post
+	app.DB.First(&post, "id = ?", post_id)
+
+	if app.DB.NewRecord(post) {
+		ErrorWithJSON(w, "Failed. This post doesn't exist", http.StatusBadRequest)
+		return
+	}
+
+	var rsvpost Post
+	if err := json.NewDecoder(r.Body).Decode(&rsvpost); err != nil {
+		ErrorWithJSON(w, "Can not decode json", http.StatusBadRequest)
+		return
+	}
+
+	var chk_post Post
+	app.DB.First(&chk_post, "name = ?", rsvpost.Name)
+
+	if !app.DB.NewRecord(chk_post) && chk_post.ID != post.ID {
+		ErrorWithJSON(w, "Failed. This post name already exists", http.StatusBadRequest)
+		return
+	}
+
+	post.Name = rsvpost.Name
+	post.Body = rsvpost.Body
+	post.Tags = []Tag{}
+
+	for _, t := range rsvpost.Tags {
+		app.DB.First(&t, "name = ?", t.Name)
+		if app.DB.NewRecord(t) {
+			app.DB.Create(&t)
+		}
+		app.DB.Model(&post).Association("Tags").Append(t)
+	}
+
+	app.DB.Save(&post)
+
+	ResponseWithJSON(w, &post, http.StatusOK)
+
 }
 
 func (app *App) DeletePost(w http.ResponseWriter, r *http.Request) {
