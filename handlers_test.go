@@ -51,42 +51,24 @@ import (
 // }
 
 func TestCheckHealth(t *testing.T) {
-	tt := []struct {
-		name   string
-		method string
-		url    string
-		body   []byte
-		exp    interface{}
-		status int
-	}{
-		{name: "health get", method: "GET", url: "/health", exp: map[string]interface{}{"Message": "OK"}, status: http.StatusOK},
-		{name: "health post", method: "POST", url: "/health", status: http.StatusMethodNotAllowed},
-	}
-
-	for _, tc := range tt {
+	// Initiate server
+	srv := httptest.NewServer(app.R)
+	defer srv.Close()
+	// Interate over the tasting table
+	for _, tc := range TThealth {
 		t.Run(tc.name, func(t *testing.T) {
-			// Initiate server
-			srv := httptest.NewServer(app.R)
-			defer srv.Close()
-			// Prepare the request
-			body := bytes.NewBuffer(tc.body)
-			req, err := http.NewRequest(tc.method, srv.URL+tc.url, body)
+			// Make the request and get the response
+			res, err := makeRequest(srv, tc)
 			if err != nil {
 				t.Fatalf("could not create request: ", err)
-			}
-			// Make the request
-			client := &http.Client{}
-			res, err := client.Do(req)
-			if err != nil {
-				t.Fatalf("could not send %v request: %v", tc.method, err)
 			}
 			// Check Status
 			if res.StatusCode != tc.status {
 				t.Errorf("expected status %v; got %v", tc.status, res.StatusCode)
 			}
 			// Read the response Body to got value
-			var got interface{}
-			err = json.NewDecoder(res.Body).Decode(&got)
+			var rcv map[string]interface{}
+			err = json.NewDecoder(res.Body).Decode(&rcv)
 			defer res.Body.Close()
 			switch {
 			case err == io.EOF:
@@ -94,76 +76,29 @@ func TestCheckHealth(t *testing.T) {
 				t.Fatalf("could not unmarshal data: ", err)
 			}
 			// Compare expected with received
-			if !reflect.DeepEqual(tc.exp, got) {
-				t.Errorf("expected response to be %v, got %v", tc.exp, got)
+			if !reflect.DeepEqual(tc.exp, rcv) {
+				t.Errorf("expected response to be %v, got %v", tc.exp, rcv)
 			}
 		})
 	}
 }
 
-func TestCreatePost(t *testing.T) {
-	tt := []struct {
-		name   string
-		method string
-		url    string
-		body   []byte
-		exp    map[string]interface{}
-		status int
-	}{
-		{name: "first post",
-			method: "POST",
-			url:    "/posts",
-			body:   []byte(`{"Name": "Post1", "Body": "Body1", "Tags": [{"Name": "tag1"},{"Name": "tag2"}]}`),
-			// exp:    Post{ID: 1, Name: "Post1", Body: "Body1", Tags: []Tag{{ID: 1, Name: "tag1"}, {ID: 2, Name: "tag2"}}},
-			exp:    map[string]interface{}{"ID": float64(1), "Name": "Post1", "Body": "Body1", "Tags": []interface{}{map[string]interface{}{"ID": float64(1), "Name": "tag1"}, map[string]interface{}{"ID": float64(2), "Name": "tag2"}}},
-			status: http.StatusOK,
-		},
-		{name: "with the same post name",
-			method: "POST",
-			url:    "/posts",
-			body:   []byte(`{"Name": "Post1", "Body": "Body1", "Tags": [{"Name": "tag3"},{"Name": "tag4"}]}`),
-			exp:    map[string]interface{}{"Message": "Failed. This post name already exists"},
-			status: http.StatusBadRequest,
-		},
-		{name: "with the same tags",
-			method: "POST",
-			url:    "/posts",
-			body:   []byte(`{"Name": "Post2", "Body": "Body2", "Tags": [{"Name": "tag1"},{"Name": "tag2"}]}`),
-			// exp:    Post{ID: 2, Name: "Post2", Body: "Body2", Tags: []Tag{{ID: 1, Name: "tag1"}, {ID: 2, Name: "tag2"}}},
-			exp:    map[string]interface{}{"ID": float64(2), "Name": "Post2", "Body": "Body2", "Tags": []interface{}{map[string]interface{}{"ID": float64(1), "Name": "tag1"}, map[string]interface{}{"ID": float64(2), "Name": "tag2"}}},
-			status: http.StatusOK,
-		},
-	}
-	for _, tc := range tt {
+func TestPost(t *testing.T) {
+	// Initiate server
+	srv := httptest.NewServer(app.R)
+	defer srv.Close()
+	// Interate over the tasting table
+	for _, tc := range TTpost {
 		t.Run(tc.name, func(t *testing.T) {
-			// Initiate server
-			srv := httptest.NewServer(app.R)
-			defer srv.Close()
-			// Prepare the request
-			body := bytes.NewBuffer(tc.body)
-			req, err := http.NewRequest(tc.method, srv.URL+tc.url, body)
+			// Make the request and get the response
+			res, err := makeRequest(srv, tc)
 			if err != nil {
 				t.Fatalf("could not create request: ", err)
 			}
-			// Make the request
-			client := &http.Client{}
-			res, err := client.Do(req)
-			if err != nil {
-				t.Fatalf("could not send %v request: %v", tc.method, err)
-			}
-			// Read the response Body to post value
-			// var post Post
-			// err = json.NewDecoder(res.Body).Decode(&post)
-			// defer res.Body.Close()
-			// if err != nil {
-			// 	t.Fatalf("could not unmarshal data: ", err)
-			// }
-
 			// Check Status
 			if res.StatusCode != tc.status {
 				t.Errorf("expected status %v; got %v", tc.status, res.StatusCode)
 			}
-
 			// https://attilaolah.eu/2013/11/29/json-decoding-in-go/
 			var rcv map[string]interface{}
 			err = json.NewDecoder(res.Body).Decode(&rcv)
@@ -171,17 +106,121 @@ func TestCreatePost(t *testing.T) {
 			if err != nil {
 				t.Fatalf("could not unmarshal data: ", err)
 			}
-			// for i, y := range tc.exp {
-			// 	fmt.Printf("%v -- %T: %v -- %T\n", i, i, y, y)
-			// }
-			// for i, y := range rcv {
-			// 	fmt.Printf("%v -- %T: %v -- %T\n", i, i, y, y)
-			// }
-
 			// Compare expected with received
 			if !reflect.DeepEqual(tc.exp, rcv) {
 				t.Errorf("expected response to be %v, got %v", tc.exp, rcv)
 			}
 		})
 	}
+}
+
+func makeRequest(srv *httptest.Server, tc Tc) (*http.Response, error) {
+	// Prepare the request
+	body := bytes.NewBuffer(tc.body)
+	req, err := http.NewRequest(tc.method, srv.URL+tc.url, body)
+	if err != nil {
+		return nil, err
+	}
+	// Make the request
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+// Test case struct
+type Tc struct {
+	name   string
+	method string
+	url    string
+	body   []byte
+	exp    map[string]interface{}
+	status int
+}
+
+// Set of unit tests for requests to health url
+var TThealth = []Tc{
+	{name: "health get",
+		method: "GET",
+		url:    "/health",
+		exp:    map[string]interface{}{"Message": "OK"},
+		status: http.StatusOK,
+	},
+	{name: "health post",
+		method: "POST",
+		url:    "/health",
+		status: http.StatusMethodNotAllowed,
+	},
+}
+
+// Set of unit tests for requests to post url
+var TTpost = []Tc{
+	// Create section
+	{name: "first post",
+		method: "POST",
+		url:    "/posts",
+		body:   []byte(`{"Name": "Post1", "Body": "Body1", "Tags": [{"Name": "tag1"},{"Name": "tag2"}]}`),
+		exp:    map[string]interface{}{"ID": float64(1), "Name": "Post1", "Body": "Body1", "Tags": []interface{}{map[string]interface{}{"ID": float64(1), "Name": "tag1"}, map[string]interface{}{"ID": float64(2), "Name": "tag2"}}},
+		status: http.StatusOK,
+	},
+	{name: "create with existing name",
+		method: "POST",
+		url:    "/posts",
+		body:   []byte(`{"Name": "Post1", "Body": "Body1", "Tags": [{"Name": "tag3"},{"Name": "tag4"}]}`),
+		exp:    map[string]interface{}{"Message": "Failed. This post name already exists"},
+		status: http.StatusBadRequest,
+	},
+	{name: "with the same tags",
+		method: "POST",
+		url:    "/posts",
+		body:   []byte(`{"Name": "Post2", "Body": "Body2", "Tags": [{"Name": "tag1"},{"Name": "tag2"}]}`),
+		exp:    map[string]interface{}{"ID": float64(2), "Name": "Post2", "Body": "Body2", "Tags": []interface{}{map[string]interface{}{"ID": float64(1), "Name": "tag1"}, map[string]interface{}{"ID": float64(2), "Name": "tag2"}}},
+		status: http.StatusOK,
+	},
+	{name: "create with with empty tags",
+		method: "POST",
+		url:    "/posts",
+		body:   []byte(`{"Name": "Post3", "Body": "Body3"}`),
+		exp:    map[string]interface{}{"ID": float64(3), "Name": "Post3", "Body": "Body3", "Tags": []interface{}{}},
+		status: http.StatusOK,
+	},
+	{name: "create with empty post name",
+		method: "POST",
+		url:    "/posts",
+		body:   []byte(`{"Name": "", "Body": ""}`),
+		exp:    map[string]interface{}{"Message": "Failed. Name field is empty"},
+		status: http.StatusBadRequest,
+	},
+	// Update section
+	{name: "update post name",
+		method: "PATCH",
+		url:    "/posts/1",
+		body:   []byte(`{"Name": "Post4", "Body": "Body4", "Tags": [{"Name": "tag1"},{"Name": "tag2"}]}`),
+		exp:    map[string]interface{}{"ID": float64(1), "Name": "Post4", "Body": "Body4", "Tags": []interface{}{map[string]interface{}{"ID": float64(1), "Name": "tag1"}, map[string]interface{}{"ID": float64(2), "Name": "tag2"}}},
+		status: http.StatusOK,
+	},
+	{name: "update post's tags",
+		method: "PATCH",
+		url:    "/posts/1",
+		body:   []byte(`{"Name": "Post4", "Body": "Body4", "Tags": [{"Name": "tag1"},{"Name": "tag3"}]}`),
+		exp:    map[string]interface{}{"ID": float64(1), "Name": "Post4", "Body": "Body4", "Tags": []interface{}{map[string]interface{}{"ID": float64(1), "Name": "tag1"}, map[string]interface{}{"ID": float64(3), "Name": "tag3"}}},
+		status: http.StatusOK,
+	},
+	{name: "update post with empty tags",
+		method: "PATCH",
+		url:    "/posts/1",
+		body:   []byte(`{"Name": "Post4", "Body": "Body4"}`),
+		exp:    map[string]interface{}{"ID": float64(1), "Name": "Post4", "Body": "Body4", "Tags": []interface{}{}},
+		status: http.StatusOK,
+	},
+	{name: "update with existing name",
+		method: "PATCH",
+		url:    "/posts/1",
+		body:   []byte(`{"Name": "Post2", "Body": "Body2", "Tags": [{"Name": "tag1"},{"Name": "tag3"}]}`),
+		exp:    map[string]interface{}{"Message": "Failed. This post name already exists"},
+		status: http.StatusBadRequest,
+	},
 }
