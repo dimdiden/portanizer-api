@@ -77,6 +77,7 @@ func (app *App) SetRouter() {
 
 	app.R.HandleFunc("/posts", app.GetPostList).Methods("GET")
 	app.R.HandleFunc("/posts", app.CreatePost).Methods("POST")
+	app.R.HandleFunc("/posts/{id}", app.UpdatePost).Methods("PATCH")
 	app.R.HandleFunc("/posts/{id}", app.DeletePost).Methods("DELETE")
 
 	app.R.HandleFunc("/tags", app.GetTagList).Methods("GET")
