@@ -73,6 +73,11 @@ func (app *App) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if rsvpost.Name == "" {
+		ErrorWithJSON(w, "Failed. Name field is empty", http.StatusBadRequest)
+		return
+	}
+
 	var chk_post Post
 	app.DB.First(&chk_post, "name = ?", rsvpost.Name)
 
