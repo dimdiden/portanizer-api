@@ -103,7 +103,9 @@ func TestPost(t *testing.T) {
 			var rcv map[string]interface{}
 			err = json.NewDecoder(res.Body).Decode(&rcv)
 			defer res.Body.Close()
-			if err != nil {
+			switch {
+			case err == io.EOF:
+			case err != nil:
 				t.Fatalf("could not unmarshal data: ", err)
 			}
 			// Compare expected with received
@@ -221,6 +223,13 @@ var TTpost = []Tc{
 		url:    "/posts/1",
 		body:   []byte(`{"Name": "Post2", "Body": "Body2", "Tags": [{"Name": "tag1"},{"Name": "tag3"}]}`),
 		exp:    map[string]interface{}{"Message": "Failed. This post name already exists"},
+		status: http.StatusBadRequest,
+	},
+	{name: "update with empty post name",
+		method: "PATCH",
+		url:    "/posts/1",
+		body:   []byte(`{"Name": "", "Body": ""}`),
+		exp:    map[string]interface{}{"Message": "Failed. Name field is empty"},
 		status: http.StatusBadRequest,
 	},
 }
