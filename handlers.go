@@ -14,11 +14,8 @@ func (app *App) CheckHealth(w http.ResponseWriter, r *http.Request) {
 
 func (app *App) GetPostList(w http.ResponseWriter, r *http.Request) {
 	var posts []Post
-	app.DB.Find(&posts)
+	app.DB.Preload("Tags").Find(&posts)
 
-	for i, _ := range posts {
-		app.DB.Model(posts[i]).Related(&posts[i].Tags, "Tags")
-	}
 	ResponseWithJSON(w, &posts, http.StatusOK)
 }
 
@@ -57,10 +54,10 @@ func (app *App) CreatePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *App) UpdatePost(w http.ResponseWriter, r *http.Request) {
-	post_id := mux.Vars(r)["id"]
+	pid := mux.Vars(r)["id"]
 
 	var post Post
-	app.DB.First(&post, "id = ?", post_id)
+	app.DB.First(&post, "id = ?", pid)
 
 	if app.DB.NewRecord(post) {
 		ErrorWithJSON(w, "Failed. This post doesn't exist", http.StatusBadRequest)
@@ -145,9 +142,6 @@ func (app *App) UpdateTag(w http.ResponseWriter, r *http.Request) {
 
 	app.DB.Table("tags").Where("id = ?", tag_id).Update(&tag)
 
-	// db.Model(&user).Updates(map[string]interface{}{"name": "hello", "age": 18, "actived": false})
-
-	// app.DB.Save(&tag)
 	ResponseWithJSON(w, &tag, http.StatusOK)
 }
 
