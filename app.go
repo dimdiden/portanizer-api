@@ -88,9 +88,7 @@ func (app *App) SetRouter() {
 }
 
 func (app *App) clearDB() {
-	app.DB.Exec("DROP TABLE `migrations`")
-	app.DB.Exec("DROP TABLE `post_tags`")
-	app.DB.DropTableIfExists(&Post{}, &Tag{})
+	app.DB.DropTableIfExists("migrations", &Post{}, &Tag{}, "post_tags")
 }
 
 func (app *App) Run(lfok, ltok, dbok bool) {
@@ -109,7 +107,7 @@ func (app *App) Run(lfok, ltok, dbok bool) {
 	}
 	if dbok {
 		app.DB = app.DB.Debug()
-		// app.DB.LogMode(true)
+		app.DB.LogMode(true)
 	}
 
 	defer app.DB.Close()
