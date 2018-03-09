@@ -8,14 +8,14 @@ import (
 
 type Post struct {
 	ID   uint
-	Name string `gorm:"unique"`
+	Name string `gorm:"unique;not null"`
 	Body string
 	Tags []Tag `gorm:"many2many:post_tags;"`
 }
 
 type Tag struct {
 	ID   uint
-	Name string `gorm:"unique"`
+	Name string `gorm:"unique;not null"`
 }
 
 func RunMigrations(db *gorm.DB) error {
@@ -23,7 +23,7 @@ func RunMigrations(db *gorm.DB) error {
 		{
 			ID: "initial",
 			Migrate: func(tx *gorm.DB) error {
-				return tx.CreateTable(&Post{}, &Tag{}).Error
+				return tx.AutoMigrate(&Post{}, &Tag{}).Error
 			},
 			Rollback: func(tx *gorm.DB) error {
 				return tx.DropTable(&Post{}, &Tag{}).Error
