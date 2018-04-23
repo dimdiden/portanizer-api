@@ -12,6 +12,8 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+const CONFFILE = "./conf.json"
+
 type App struct {
 	Conf *Conf
 	R    *mux.Router
@@ -36,7 +38,13 @@ func Initiate(cfile string, clear bool) *App {
 	return &app
 }
 
+// func (app *App) SetConf(cfile string) ERROR <- implement this
 func (app *App) SetConf(cfile string) {
+	// load configuration by default
+	if cfile == "" {
+		cfile = CONFFILE
+	}
+
 	file, err := os.Open(cfile)
 	if err != nil {
 		log.Fatal("Error opening conf file:", err)
@@ -77,11 +85,13 @@ func (app *App) SetRouter() {
 
 	app.R.HandleFunc("/posts", app.GetPostList).Methods("GET")
 	app.R.HandleFunc("/posts", app.CreatePost).Methods("POST")
+	app.R.HandleFunc("/posts/{id}", app.GetPost).Methods("GET")
 	app.R.HandleFunc("/posts/{id}", app.UpdatePost).Methods("PATCH")
 	app.R.HandleFunc("/posts/{id}", app.DeletePost).Methods("DELETE")
 
 	app.R.HandleFunc("/tags", app.GetTagList).Methods("GET")
 	app.R.HandleFunc("/tags", app.CreateTag).Methods("POST")
+	app.R.HandleFunc("/tags/{id}", app.GetTag).Methods("GET")
 	app.R.HandleFunc("/tags/{id}", app.UpdateTag).Methods("PATCH")
 	app.R.HandleFunc("/tags/{id}", app.DeleteTag).Methods("DELETE")
 
@@ -107,7 +117,8 @@ func (app *App) Run(lfok, ltok, dbok bool) {
 	}
 	if dbok {
 		app.DB = app.DB.Debug()
-		app.DB.LogMode(true)
+		// app.DB.LogMode(true)
+		// app.DB.SetLogger(log)
 	}
 
 	defer app.DB.Close()

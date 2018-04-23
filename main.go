@@ -4,11 +4,9 @@ import (
 	"flag"
 )
 
-const CONFFILE = "./conf.json"
-
 func main() {
 
-	cfile := flag.String("cfile", CONFFILE, "specify path to the configuration file")
+	cfile := flag.String("cfile", "", "specify path to the configuration file")
 	lfok := flag.Bool("f", false, "enable http logging into file")
 	ltok := flag.Bool("t", false, "enable http logging into terminal")
 	dbok := flag.Bool("d", false, "enable logging db queries")
