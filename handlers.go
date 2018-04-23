@@ -17,9 +17,22 @@ func (app *App) CheckHealth(w http.ResponseWriter, r *http.Request) {
 func (app *App) GetPostList(w http.ResponseWriter, r *http.Request) {
 	var posts []Post
 	// Find all posts and populate their tags
-	app.DB.Preload("Tags").Find(&posts)
+	app.DB.Preload("Tags").Order("ID ASC").Find(&posts)
 
 	ResponseWithJSON(w, &posts, http.StatusOK)
+}
+
+func (app *App) GetPost(w http.ResponseWriter, r *http.Request) {
+	var post Post
+
+	pid := mux.Vars(r)["id"]
+	if app.DB.First(&post, "id = ?", pid).RecordNotFound() {
+		// (w, "Failed. This post doesn't exist", http.StatusNotFound)
+		ResponseWithJSON(w, "Failed. This post doesn't exist", http.StatusNotFound)
+		return
+	}
+
+	ResponseWithJSON(w, &post, http.StatusOK)
 }
 
 // Handler for creating post
@@ -27,12 +40,12 @@ func (app *App) CreatePost(w http.ResponseWriter, r *http.Request) {
 	// Read the request body
 	var rsvpost Post
 	if err := json.NewDecoder(r.Body).Decode(&rsvpost); err != nil {
-		ErrorWithJSON(w, "Failed. Please check json syntax", http.StatusBadRequest)
+		ResponseWithJSON(w, "Failed. Please check json syntax", http.StatusBadRequest)
 		return
 	}
 	// Empty post name validation
 	if rsvpost.Name == "" {
-		ErrorWithJSON(w, "Failed. Name field is empty", http.StatusBadRequest)
+		ResponseWithJSON(w, "Failed. Name field is empty", http.StatusBadRequest)
 		return
 	}
 
@@ -40,7 +53,7 @@ func (app *App) CreatePost(w http.ResponseWriter, r *http.Request) {
 	// Unique post name validation
 	app.DB.First(&post, "name = ?", rsvpost.Name)
 	if !app.DB.NewRecord(post) {
-		ErrorWithJSON(w, "Failed. This post name already exists", http.StatusBadRequest)
+		ResponseWithJSON(w, "Failed. This post name already exists", http.StatusBadRequest)
 		return
 	}
 	// Creating post
@@ -61,24 +74,24 @@ func (app *App) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	// Query the post by id and validate existance
 	pid := mux.Vars(r)["id"]
 	if app.DB.First(&post, "id = ?", pid).RecordNotFound() {
-		ErrorWithJSON(w, "Failed. This post doesn't exist", http.StatusBadRequest)
+		ResponseWithJSON(w, "Failed. This post doesn't exist", http.StatusBadRequest)
 		return
 	}
 	// Read the request body
 	var rsvpost Post
 	if err := json.NewDecoder(r.Body).Decode(&rsvpost); err != nil {
-		ErrorWithJSON(w, "Failed. Please check json syntax", http.StatusBadRequest)
+		ResponseWithJSON(w, "Failed. Please check json syntax", http.StatusBadRequest)
 		return
 	}
 	// Empty post name validation
 	if rsvpost.Name == "" {
-		ErrorWithJSON(w, "Failed. Name field is empty", http.StatusBadRequest)
+		ResponseWithJSON(w, "Failed. Name field is empty", http.StatusBadRequest)
 		return
 	}
 	// Unique post name validation
 	var chk_post Post
 	if !app.DB.First(&chk_post, "name = ?", rsvpost.Name).RecordNotFound() && chk_post.ID != post.ID {
-		ErrorWithJSON(w, "Failed. This post name already exists", http.StatusBadRequest)
+		ResponseWithJSON(w, "Failed. This post name already exists", http.StatusBadRequest)
 		return
 	}
 	// Update post with new parameters
@@ -96,26 +109,48 @@ func (app *App) UpdatePost(w http.ResponseWriter, r *http.Request) {
 func (app *App) DeletePost(w http.ResponseWriter, r *http.Request) {
 	var post Post
 
-	vars := mux.Vars(r)
-	post_id := vars["id"]
+	id := mux.Vars(r)["id"]
 
-	app.DB.Where("id = ?", post_id).Delete(&Post{})
-	app.DB.Unscoped().Where("id = ?", post_id).First(&post)
+	// app.DB.Where("id = ?", id).Delete(&Tag{})
+	// app.DB.Unscoped().Where("id = ?", id).First(&tag)
+
+	if app.DB.First(post, id).RecordNotFound() {
+		ResponseWithJSON(w, "Failed. This post doesn't exist", http.StatusNotFound)
+		return
+	}
+	app.DB.Model(&post).Association("Tags").Clear()
+
+	app.DB.Delete(&post)
+
+	// app.DB.Where("id = ?", pid).Delete(&Post{})
+	// app.DB.Unscoped().Where("id = ?", pid).First(&post)
 
 	ResponseWithJSON(w, &post, http.StatusOK)
 }
 
 func (app *App) GetTagList(w http.ResponseWriter, r *http.Request) {
 	var tags []Tag
-	app.DB.Find(&tags)
+	app.DB.Order("ID ASC").Find(&tags)
 
 	ResponseWithJSON(w, &tags, http.StatusOK)
+}
+
+func (app *App) GetTag(w http.ResponseWriter, r *http.Request) {
+	var tag Tag
+
+	pid := mux.Vars(r)["id"]
+	if app.DB.First(&tag, "id = ?", pid).RecordNotFound() {
+		ResponseWithJSON(w, "Failed. This tag doesn't exist", http.StatusNotFound)
+		return
+	}
+
+	ResponseWithJSON(w, &tag, http.StatusOK)
 }
 
 func (app *App) CreateTag(w http.ResponseWriter, r *http.Request) {
 	var tag Tag
 	if err := json.NewDecoder(r.Body).Decode(&tag); err != nil {
-		ErrorWithJSON(w, "Failed. Please check json syntax", http.StatusBadRequest)
+		ResponseWithJSON(w, "Failed. Please check json syntax", http.StatusBadRequest)
 		return
 	}
 	app.DB.Save(&tag)
@@ -125,7 +160,7 @@ func (app *App) CreateTag(w http.ResponseWriter, r *http.Request) {
 func (app *App) UpdateTag(w http.ResponseWriter, r *http.Request) {
 	var tag Tag
 	if err := json.NewDecoder(r.Body).Decode(&tag); err != nil {
-		ErrorWithJSON(w, "Failed. Please check json syntax", http.StatusBadRequest)
+		ResponseWithJSON(w, "Failed. Please check json syntax", http.StatusBadRequest)
 		return
 	}
 
@@ -141,12 +176,22 @@ func (app *App) DeleteTag(w http.ResponseWriter, r *http.Request) {
 	var tag Tag
 
 	vars := mux.Vars(r)
-	tag_id := vars["id"]
+	id := vars["id"]
 
-	app.DB.Where("id = ?", tag_id).Delete(&Tag{})
-	app.DB.Unscoped().Where("id = ?", tag_id).First(&tag)
+	// app.DB.Unscoped().Where("id = ?", id).First(&tag)
 
-	ResponseWithJSON(w, &tag, http.StatusOK)
+	if app.DB.First(tag, id).RecordNotFound() {
+		ResponseWithJSON(w, "Failed. This tag doesn't exist", http.StatusNotFound)
+		return
+	}
+
+	// app.DB.Where("id = ?", id).Delete(&Tag{})
+	app.DB.Delete(tag)
+	ResponseWithJSON(w, "Tag "+id+" has been deleted successfully", http.StatusOK)
+	// // app.DB.Model(&tag).Clear()
+	//
+	// app.DB.Delete(&tag)
+	// ResponseWithJSON(w, &tag, http.StatusOK)
 }
 
 // {
